@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f6f43">
+<title>Tennis Scorekeeper</title>
+<style>
+  :root {
+    --bg: #f4f6f3;
+    --card: #ffffff;
+    --text: #17201a;
+    --muted: #5f6b63;
+    --line: #dde3de;
+    --a: #1f6f43;
+    --b: #2457a6;
+    --danger: #b3261e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111613;
+      --card: #1b221d;
+      --text: #eef2ef;
+      --muted: #9aa69e;
+      --line: #2c352f;
+      --a: #2f9a5f;
+      --b: #3d78d0;
+      --danger: #e5675f;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  main {
+    max-width: 520px;
+    min-height: 100%;
+    margin: 0 auto;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  [hidden] { display: none !important; }
+  h1 { font-size: 1.5rem; margin: 8px 0; }
+  label { display: block; font-weight: 600; margin-top: 12px; }
+  input {
+    width: 100%;
+    margin-top: 6px;
+    padding: 14px;
+    font-size: 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+  }
+  button {
+    font: inherit;
+    border: 0;
+    border-radius: 14px;
+    cursor: pointer;
+    touch-action: manipulation;
+  }
+  button:active { transform: scale(0.98); filter: brightness(0.92); }
+  button:disabled { opacity: 0.35; transform: none; filter: none; cursor: default; }
+  .primary {
+    width: 100%;
+    margin-top: 24px;
+    padding: 16px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    background: var(--a);
+    color: #fff;
+  }
+
+  .board {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .board table { width: 100%; border-collapse: collapse; }
+  .board th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    padding-bottom: 4px;
+  }
+  .board th:first-child { text-align: left; }
+  .board td { padding: 6px 0; font-size: 1.15rem; text-align: center; }
+  .board td.name {
+    text-align: left;
+    font-weight: 700;
+    max-width: 0;
+    width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .board td.sets, .board td.games { font-size: 1.6rem; font-weight: 800; width: 18%; }
+  .board td.prev { color: var(--muted); font-variant-numeric: tabular-nums; width: 14%; }
+  .board tr.a td.name { color: var(--a); }
+  .board tr.b td.name { color: var(--b); }
+  .points {
+    margin-top: 8px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+    font-size: 2.4rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .points.won { font-size: 1.6rem; }
+
+  .point-btn {
+    flex: 1;
+    min-height: 25vh;
+    padding: 12px;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #fff;
+    overflow-wrap: anywhere;
+  }
+  #btnA { background: var(--a); }
+  #btnB { background: var(--b); }
+  .row { display: flex; gap: 12px; }
+  .small {
+    flex: 1;
+    padding: 14px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--line);
+  }
+  .danger { color: var(--danger); border-color: var(--danger); }
+  .confirm { text-align: center; color: var(--muted); margin: 0; }
+
+  #tests { font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem; }
+  #tests .pass { color: var(--a); }
+  #tests .fail { color: var(--danger); }
+</style>
+</head>
+<body>
+<main>
+
+  <section id="setup">
+    <h1>Tennis scorekeeper</h1>
+    <p style="color: var(--muted); margin: 0;">Best of 3 sets, tiebreak at 6-6.</p>
+    <form id="setupForm">
+      <label for="nameA">Player A</label>
+      <input id="nameA" autocomplete="off" placeholder="Player A" maxlength="30">
+      <label for="nameB">Player B</label>
+      <input id="nameB" autocomplete="off" placeholder="Player B" maxlength="30">
+      <button class="primary" type="submit">Start match</button>
+    </form>
+  </section>
+
+  <section id="game" hidden style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+    <div class="board">
+      <table>
+        <thead>
+          <tr><th>Player</th><th>Sets</th><th>Games</th><th colspan="3" id="prevHead"></th></tr>
+        </thead>
+        <tbody>
+          <tr class="a"><td class="name" id="rowNameA"></td><td class="sets" id="setsA"></td><td class="games" id="gamesA"></td></tr>
+          <tr class="b"><td class="name" id="rowNameB"></td><td class="sets" id="setsB"></td><td class="games" id="gamesB"></td></tr>
+        </tbody>
+      </table>
+      <div class="points" id="points" aria-live="polite"></div>
+    </div>
+
+    <button class="point-btn" id="btnA"></button>
+    <button class="point-btn" id="btnB"></button>
+
+    <div class="row" id="controls">
+      <button class="small" id="undo">Undo</button>
+      <button class="small" id="newMatch">New match</button>
+    </div>
+    <div id="confirmBox" hidden>
+      <p class="confirm">Throw away this match and start again?</p>
+      <div class="row" style="margin-top: 8px;">
+        <button class="small" id="cancelNew">Keep playing</button>
+        <button class="small danger" id="confirmNew">Yes, new match</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tests" hidden></section>
+
+</main>
+<script>
+// Scoring rules: a direct port of tennis.py, which is the source of truth.
+// If you change the rules there, change them here too.
+const POINT_NAMES = ["0", "15", "30", "40"];
+
+class Match {
+  constructor(bestOf = 3) {
+    this.setsToWin = Math.floor(bestOf / 2) + 1;
+    this.sets = [0, 0];
+    this.games = [0, 0];
+    this.points = [0, 0];
+    this.finishedSets = [];  // games score of each completed set, e.g. [6, 4]
+    this.winner = null;  // "a" or "b" once the match is over
+  }
+
+  get inTiebreak() {
+    return this.games[0] === 6 && this.games[1] === 6;
+  }
+
+  point(player) {
+    if (this.winner !== null) throw new Error("The match is already over.");
+    if (player !== "a" && player !== "b") throw new Error(`Player must be 'a' or 'b', not ${player}.`);
+
+    const i = player === "a" ? 0 : 1;
+    this.points[i] += 1;
+
+    // A normal game needs 4 points, a tiebreak 7; both need a 2-point lead.
+    const target = this.inTiebreak ? 7 : 4;
+    if (this.points[i] >= target && this.points[i] - this.points[1 - i] >= 2) {
+      this._winGame(i);
+    }
+  }
+
+  _winGame(i) {
+    this.points = [0, 0];
+    this.games[i] += 1;
+    const mine = this.games[i], theirs = this.games[1 - i];
+    // 6 games with a 2-game lead, or 7 (that is 7-5, or 7-6 after a tiebreak).
+    if ((mine >= 6 && mine - theirs >= 2) || mine === 7) {
+      this._winSet(i);
+    }
+  }
+
+  _winSet(i) {
+    this.finishedSets.push([...this.games]);
+    this.games = [0, 0];
+    this.sets[i] += 1;
+    if (this.sets[i] === this.setsToWin) {
+      this.winner = i === 0 ? "a" : "b";
+    }
+  }
+
+  // names lets the page say "Advantage Ana" instead of "Advantage A".
+  pointScore(names = { a: "A", b: "B" }) {
+    const [a, b] = this.points;
+    if (this.inTiebreak) return `Tiebreak ${a}-${b}`;
+    if (a >= 3 && b >= 3) {
+      if (a === b) return "Deuce";
+      return "Advantage " + (a > b ? names.a : names.b);
+    }
+    return `${POINT_NAMES[a]}-${POINT_NAMES[b]}`;
+  }
+}
+
+function replay(history) {
+  const m = new Match();
+  for (const p of history) m.point(p);
+  return m;
+}
+
+// ---- Page state: names plus every point played, so Undo is just "replay minus one".
+const STORAGE_KEY = "tennis-scorekeeper";
+let state = { names: null, history: [] };
+
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (saved && saved.names && Array.isArray(saved.history)) {
+      replay(saved.history);  // throws if the saved points are invalid
+      return saved;
+    }
+  } catch (e) {}
+  return null;
+}
+
+const $ = (id) => document.getElementById(id);
+
+function render() {
+  const { names, history } = state;
+  const m = replay(history);
+
+  $("rowNameA").textContent = names.a;
+  $("rowNameB").textContent = names.b;
+  $("setsA").textContent = m.sets[0];
+  $("setsB").textContent = m.sets[1];
+  $("gamesA").textContent = m.winner ? "" : m.games[0];
+  $("gamesB").textContent = m.winner ? "" : m.games[1];
+
+  // One column per completed set.
+  document.querySelectorAll(".prev").forEach((td) => td.remove());
+  m.finishedSets.forEach(([ga, gb]) => {
+    const tdA = document.createElement("td"); tdA.className = "prev"; tdA.textContent = ga;
+    const tdB = document.createElement("td"); tdB.className = "prev"; tdB.textContent = gb;
+    $("gamesA").parentNode.appendChild(tdA);
+    $("gamesB").parentNode.appendChild(tdB);
+  });
+  $("prevHead").textContent = m.finishedSets.length ? "Sets played" : "";
+
+  const pts = $("points");
+  if (m.winner) {
+    const sets = m.finishedSets.map(([a, b]) => `${a}-${b}`).join(" ");
+    pts.textContent = `Match won by ${names[m.winner]}! ${sets}`;
+    pts.classList.add("won");
+  } else {
+    pts.textContent = m.pointScore(names);
+    pts.classList.remove("won");
+  }
+
+  $("btnA").textContent = `Point ${names.a}`;
+  $("btnB").textContent = `Point ${names.b}`;
+  $("btnA").disabled = $("btnB").disabled = m.winner !== null;
+  $("undo").disabled = history.length === 0;
+}
+
+function showGame() {
+  $("setup").hidden = true;
+  $("game").hidden = false;
+  render();
+}
+
+function showSetup() {
+  $("game").hidden = true;
+  $("confirmBox").hidden = true;
+  $("controls").hidden = false;
+  $("setup").hidden = false;
+  if (state.names) {
+    $("nameA").value = state.names.a;
+    $("nameB").value = state.names.b;
+  }
+}
+
+$("setupForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  state = {
+    names: {
+      a: $("nameA").value.trim() || "Player A",
+      b: $("nameB").value.trim() || "Player B",
+    },
+    history: [],
+  };
+  save();
+  showGame();
+});
+
+function addPoint(player) {
+  if (replay(state.history).winner) return;
+  state.history.push(player);
+  save();
+  render();
+}
+$("btnA").addEventListener("click", () => addPoint("a"));
+$("btnB").addEventListener("click", () => addPoint("b"));
+
+$("undo").addEventListener("click", () => {
+  state.history.pop();
+  save();
+  render();
+});
+
+$("newMatch").addEventListener("click", () => {
+  $("controls").hidden = true;
+  $("confirmBox").hidden = false;
+});
+$("cancelNew").addEventListener("click", () => {
+  $("confirmBox").hidden = true;
+  $("controls").hidden = false;
+});
+$("confirmNew").addEventListener("click", showSetup);
+
+// ---- Self-check: open index.html#test to run the same cases as test_tennis.py.
+function runTests() {
+  const play = (m, points) => { for (const p of points) m.point(p); };
+  const winGames = (m, player, count) => play(m, player.repeat(4 * count));
+  const eq = (actual, expected) => {
+    if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+      throw new Error(`expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+    }
+  };
+  const throws = (fn) => {
+    try { fn(); } catch (e) { return; }
+    throw new Error("expected an error");
+  };
+  const reachSixAll = () => {
+    const m = new Match();
+    for (let k = 0; k < 6; k++) { winGames(m, "a", 1); winGames(m, "b", 1); }
+    eq(m.inTiebreak, true);
+    return m;
+  };
+
+  const tests = {
+    love_game() {
+      const m = new Match();
+      play(m, "aaa"); eq(m.pointScore(), "40-0");
+      m.point("a"); eq(m.games, [1, 0]); eq(m.points, [0, 0]);
+    },
+    deuce_and_advantage() {
+      const m = new Match();
+      play(m, "aaabbb"); eq(m.pointScore(), "Deuce");
+      m.point("a"); eq(m.pointScore(), "Advantage A");
+      m.point("b"); eq(m.pointScore(), "Deuce");
+      m.point("b"); eq(m.pointScore(), "Advantage B");
+      m.point("b"); eq(m.games, [0, 1]);
+    },
+    six_four_wins_set() {
+      const m = new Match();
+      winGames(m, "b", 4); winGames(m, "a", 6);
+      eq(m.finishedSets, [[6, 4]]); eq(m.sets, [1, 0]);
+    },
+    six_five_does_not_win_set() {
+      const m = new Match();
+      winGames(m, "b", 5); winGames(m, "a", 6); eq(m.sets, [0, 0]);
+      winGames(m, "a", 1); eq(m.finishedSets, [[7, 5]]);
+    },
+    tiebreak_seven_five() {
+      const m = reachSixAll();
+      play(m, "aaaaaabbbbb"); eq(m.pointScore(), "Tiebreak 6-5");
+      m.point("a"); eq(m.finishedSets, [[7, 6]]); eq(m.inTiebreak, false);
+    },
+    tiebreak_needs_two_point_lead() {
+      const m = reachSixAll();
+      play(m, "ab".repeat(6));
+      m.point("a"); eq(m.sets, [0, 0]);
+      m.point("a"); eq(m.sets, [1, 0]);
+    },
+    straight_sets() {
+      const m = new Match();
+      winGames(m, "a", 12); eq(m.winner, "a"); eq(m.finishedSets, [[6, 0], [6, 0]]);
+    },
+    three_sets() {
+      const m = new Match();
+      winGames(m, "a", 6); winGames(m, "b", 6); eq(m.winner, null);
+      winGames(m, "b", 6); eq(m.winner, "b");
+    },
+    no_points_after_match() {
+      const m = new Match();
+      winGames(m, "a", 12); throws(() => m.point("b"));
+    },
+    invalid_player() {
+      throws(() => new Match().point("c"));
+    },
+    undo_across_set_boundary() {
+      const history = [..."a".repeat(48)];  // 12 love games = 6-0 6-0
+      eq(replay(history).winner, "a");
+      history.pop();
+      const m = replay(history);
+      eq(m.winner, null); eq(m.sets, [1, 0]); eq(m.games, [5, 0]); eq(m.pointScore(), "40-0");
+    },
+  };
+
+  const out = $("tests");
+  out.hidden = false;
+  $("setup").hidden = true;
+  let failed = 0;
+  const lines = Object.entries(tests).map(([name, fn]) => {
+    try { fn(); return `<div class="pass">PASS ${name}</div>`; }
+    catch (e) { failed++; return `<div class="fail">FAIL ${name}: ${e.message}</div>`; }
+  });
+  const total = lines.length;
+  out.innerHTML = `<h1>Self-check</h1>${lines.join("")}<p><strong>${total - failed}/${total} passed</strong></p>`;
+  document.title = failed ? `FAIL ${failed}` : `PASS ${total}`;
+}
+
+if (location.hash === "#test") {
+  runTests();
+} else {
+  const saved = load();
+  if (saved) { state = saved; showGame(); }
+}
+</script>
+</body>
+</html>
