@@ -16,16 +16,19 @@ Type `a` or `b` after each point, or `q` to quit.
 
 ## Web version (for your phone)
 
-Open `index.html` in any browser. No server or install is needed. Type the
-player names, then tap **Point** for whoever won each point. **Undo** takes back
-the last point. The score is saved in the browser, so a reload or locked phone
-won't lose the match.
+Play it live at **https://tongidc.github.io/tennis-scorekeeper/**. Open that
+link on your phone and bookmark it or add it to your home screen. You can also
+open `index.html` straight from this folder in any browser. No server or install
+is needed.
 
-To use it on a phone, copy `index.html` onto the phone and open it in the
-browser, or host it anywhere that serves static files (e.g. GitHub Pages).
+Type the player names, then tap **Point** for whoever won each point. **Undo**
+takes back the last point. The score is saved in the browser, so a reload or
+locked phone won't lose the match.
 
 The scoring rules in `index.html` are a direct port of `tennis.py`. Open
-`index.html#test` to run the same checks as `test_tennis.py` in the browser.
+[the live site with `#test`](https://tongidc.github.io/tennis-scorekeeper/#test)
+(or `index.html#test` locally) to run the same checks as `test_tennis.py` in the
+browser.
 
 ## Test
 
