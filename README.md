@@ -42,3 +42,5 @@ python -m unittest -v
 - `main.py`: the command-line loop
 - `test_tennis.py`: tests for the scoring rules
 - `index.html`: the web version (scoring rules, page and self-check in one file)
+- `manifest.webmanifest`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`:
+  the home-screen name and icon for the web version
